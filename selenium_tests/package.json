@@ -1,0 +1,17 @@
+{
+  "name": "mindguard-selenium-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Selenium test suite and excel report generator for MindGuard",
+  "main": "run_tests.js",
+  "scripts": {
+    "test": "node run_tests.js"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.20.0",
+    "exceljs": "^4.4.0",
+    "axios": "^1.6.8",
+    "mongoose": "^8.3.1",
+    "dotenv": "^16.4.5"
+  }
+}

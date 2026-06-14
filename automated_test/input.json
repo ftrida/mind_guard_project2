@@ -1,0 +1,10 @@
+{
+  "baseUrl": "http://127.0.0.1:5000",
+  "employeeEmail": "employee@mindguard.com",
+  "employeePassword": "password123",
+  "adminEmail": "admin@mindguard.com",
+  "adminPassword": "password123",
+  "superAdminEmail": "superadmin@mindguard.com",
+  "superAdminPassword": "password123",
+  "jwtSecret": "super_secret_mindguard_jwt_key_1234567890_abc"
+}
