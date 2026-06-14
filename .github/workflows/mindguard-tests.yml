@@ -67,9 +67,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: selenium_tests/package-lock.json
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-
       - name: Install dependencies
         run: npm install
         working-directory: selenium_tests
@@ -108,18 +105,6 @@ jobs:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: appium_tests/package-lock.json
-
-      - name: Setup Java (required for Appium)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Install Appium
-        run: npm install -g appium
-
-      - name: Install UIAutomator2 Driver
-        run: appium driver install uiautomator2
 
       - name: Install dependencies
         run: npm install
