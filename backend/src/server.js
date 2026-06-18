@@ -75,20 +75,25 @@ app.use(cors({
   credentials: true
 }));
 
+// Helper to bypass rate limits during testing
+const shouldSkipRateLimit = () => process.env.DISABLE_RATE_LIMITS === 'true';
+
 // FIX F-05: Dedicated, strict rate limiter for authentication endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,                    // max 10 attempts per IP per window
   message: { success: false, error: 'Too many authentication attempts from this IP. Please try again in 15 minutes.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: shouldSkipRateLimit
 });
 
 // General API rate limiter (non-auth routes)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
-  message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes' }
+  message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes' },
+  skip: shouldSkipRateLimit
 });
 app.use('/api', apiLimiter);
 
