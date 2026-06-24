@@ -1,4 +1,4 @@
-name: 📱 Appium Mobile Tests
+name: appium
 
 on:
   push:

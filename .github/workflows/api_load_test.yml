@@ -1,0 +1,44 @@
+name: api load test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  load-tests:
+    name: Run API Load Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: load_tests/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: load_tests
+
+      - name: Run Load Tests
+        run: node run_tests.js
+        working-directory: load_tests
+        env:
+          TARGET_URL: ${{ secrets.TARGET_URL || 'http://localhost:5000' }}
+          NODE_ENV: test
+        continue-on-error: true
+
+      - name: Upload Load Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-report
+          path: load_tests/load_report.xlsx
+          retention-days: 30

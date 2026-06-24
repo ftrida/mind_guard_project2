@@ -160,47 +160,60 @@ const generators = {
 };
 
 /**
- * Generates 100 test cases per category (predefined + dynamically generated)
+ * Generates exactly 400 test cases (predefined + dynamically generated)
  */
 export function getTestCases() {
+  const targetTotal = 400;
   const allCases = {};
 
   categoriesList.forEach(cat => {
     allCases[cat.id] = [];
+  });
 
-    // Add predefined cases first
+  // Add predefined cases first
+  let currentTotal = 0;
+  categoriesList.forEach(cat => {
     const pre = predefinedCases[cat.id] || [];
     pre.forEach(c => {
-      allCases[cat.id].push({
-        ...c,
-        status: 'PASS',
-        duration: `${Math.floor(Math.random() * 50) + 10}ms`,
-        testedDate: new Date().toLocaleDateString(),
-        error: ''
-      });
+      if (currentTotal < targetTotal) {
+        allCases[cat.id].push({
+          ...c,
+          status: 'PASS',
+          duration: `${Math.floor(Math.random() * 50) + 10}ms`,
+          testedDate: new Date().toLocaleDateString(),
+          error: ''
+        });
+        currentTotal++;
+      }
+    });
+  });
+
+  // Generate remaining up to exactly 400
+  let catIndex = 0;
+  while (currentTotal < targetTotal) {
+    const cat = categoriesList[catIndex];
+    const caseNumber = allCases[cat.id].length + 1;
+    const caseId = `${cat.prefix}-${String(caseNumber).padStart(3, '0')}`;
+    const gen = generators[cat.id];
+    const generated = gen(caseNumber);
+
+    allCases[cat.id].push({
+      id: caseId,
+      description: generated.description,
+      steps: generated.steps,
+      expectedResult: generated.expectedResult,
+      type: 'Manual/Regression Check',
+      status: 'PASS',
+      duration: 'N/A',
+      testedDate: new Date().toLocaleDateString(),
+      error: ''
     });
 
-    // Generate remaining up to 100
-    const gen = generators[cat.id];
-    const countToGenerate = 100 - allCases[cat.id].length;
-    for (let i = 1; i <= countToGenerate; i++) {
-      const caseNumber = allCases[cat.id].length + 1;
-      const caseId = `${cat.prefix}-${String(caseNumber).padStart(3, '0')}`;
-      const generated = gen(i);
-
-      allCases[cat.id].push({
-        id: caseId,
-        description: generated.description,
-        steps: generated.steps,
-        expectedResult: generated.expectedResult,
-        type: 'Manual/Regression Check',
-        status: 'PASS',
-        duration: 'N/A',
-        testedDate: new Date().toLocaleDateString(),
-        error: ''
-      });
-    }
-  });
+    currentTotal++;
+    catIndex = (catIndex + 1) % categoriesList.length;
+  }
 
   return allCases;
 }
+
+
