@@ -67,13 +67,24 @@ app.use(mongoSanitize());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://ftrida.github.io',
+  'https://ftrida.github.io/mind_guard_project2',
   process.env.CLIENT_URL
 ].filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
+
+// Helper to bypass rate limits during testing
+const shouldSkipRateLimit = () => process.env.DISABLE_RATE_LIMITS === 'true';
 
 // FIX F-05: Dedicated, strict rate limiter for authentication endpoints
 const authLimiter = rateLimit({
@@ -81,14 +92,16 @@ const authLimiter = rateLimit({
   max: 10,                    // max 10 attempts per IP per window
   message: { success: false, error: 'Too many authentication attempts from this IP. Please try again in 15 minutes.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: shouldSkipRateLimit
 });
 
 // General API rate limiter (non-auth routes)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
-  message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes' }
+  message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes' },
+  skip: shouldSkipRateLimit
 });
 app.use('/api', apiLimiter);
 
