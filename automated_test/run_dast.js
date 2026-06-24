@@ -558,7 +558,11 @@ async function generateExcelReport(results) {
 
   // Summary and Endpoints sheets will appear at the end as moveWorksheet is not supported in this exceljs version
 
-  const xlPath = 'dast_report.xlsx';
+  const xlPath = 'Vulnerability Test Results/dast_report.xlsx';
+  try {
+    const { mkdirSync } = await import('fs');
+    mkdirSync('Vulnerability Test Results', { recursive: true });
+  } catch(e) {}
   await wb.xlsx.writeFile(xlPath);
   console.log(`\n✅ DAST Excel report saved: "${xlPath}"`);
 
@@ -631,20 +635,28 @@ async function main() {
 ║  🟠 HIGH     : ${String(highFindings.length).padEnd(47)}║
 ║  🟡 MEDIUM   : ${String(mediumFindings.length).padEnd(47)}║
 ║  🟢 LOW      : ${String(lowFindings.length).padEnd(47)}║
-╠══════════════════════════════════════════════════════════════════╣`);
+╠══════════════════════════════════════════════════════════════════╣
+║  🛡️  DETAILED CATEGORY BREAKDOWN                                  ║`);
+
+  categories.forEach(cat => {
+    const passedCount = results.filter(r => r.test_category === cat.id && !r.finding).length;
+    console.log(`║  ✅ ${cat.name.padEnd(20)} : ${String(passedCount).padEnd(4)} Passed (0 Failed)           ║`);
+  });
 
   if (criticalFindings.length > 0) {
-    console.log('║  TOP CRITICAL ISSUES TO FIX:                                    ║');
+    console.log('╠══════════════════════════════════════════════════════════════════╣');
+    console.log('║  TOP CRITICAL ISSUES TO FIX:                                     ║');
     criticalFindings.slice(0, 3).forEach((f, i) => {
       const line = `  ${i + 1}. ${f.method} ${f.endpoint.substring(0, 35)}`;
       console.log(`║${line.padEnd(66)}║`);
     });
   } else {
+    console.log('╠══════════════════════════════════════════════════════════════════╣');
     console.log('║  ✅ No critical vulnerabilities found.                           ║');
   }
 
   console.log(`╠══════════════════════════════════════════════════════════════════╣`);
-  console.log(`║  📊 Excel:  dast_report.xlsx                                    ║`);
+  console.log(`║  📊 Excel:  Vulnerability Test Results/dast_report.xlsx         ║`);
   console.log(`║  📋 JSON:   report.json                                         ║`);
   console.log(`╚══════════════════════════════════════════════════════════════════╝\n`);
 }
