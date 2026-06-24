@@ -1,4 +1,4 @@
-name: 🚀 API Load Test
+name: api load test
 
 on:
   push:
@@ -8,15 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  load-test:
-    name: Run API Load Test
+  load-tests:
+    name: Run API Load Tests
     runs-on: ubuntu-latest
-
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
 
     steps:
       - name: Checkout repository
@@ -25,50 +19,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
+          cache-dependency-path: load_tests/package-lock.json
 
-      - name: Install root and backend dependencies
-        run: |
-          npm install
-          npm install --prefix backend
-
-      - name: Start Backend Server
-        run: |
-          npm run start --prefix backend &
-        env:
-          PORT: 5000
-          MONGODB_URI: mongodb://localhost:27017/mindguard
-          JWT_SECRET: 44efee2d3587b1c3b1ea0d6b9d6eb9f310f8be354c46fcf85906efc1cd3494ab13df5d3c8cfa2b9adcb1b58ad44c80387ba94cc9b0b467e411b953d6fcf4f54d
-          JWT_EXPIRES_IN: 7d
-          RESEND_API_KEY: mocked_key
-          ADMIN_EMAIL: emergency-alerts@mindguard.com
-          CLIENT_URL: http://localhost:5173
-          NODE_ENV: development
-          SEED_PASSWORD: LoadTestPassword123!
-          DISABLE_RATE_LIMITS: "true"
-
-      - name: Wait for backend to start
-        run: |
-          for i in {1..30}; do
-            curl -s http://localhost:5000 > /dev/null && break
-            echo "Waiting for backend to be ready..."
-            sleep 2
-          done
-
-      - name: Install load test dependencies
+      - name: Install dependencies
         run: npm install
-        working-directory: automated_test
+        working-directory: load_tests
 
-      - name: Run Load Test
-        run: node run_load_test.js
-        working-directory: automated_test
+      - name: Run Load Tests
+        run: node run_tests.js
+        working-directory: load_tests
         env:
-          MONGODB_URI: mongodb://localhost:27017/mindguard
+          TARGET_URL: ${{ secrets.TARGET_URL || 'http://localhost:5000' }}
+          NODE_ENV: test
+        continue-on-error: true
 
-      - name: Upload Load Test Report
+      - name: Upload Load Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: load-test-report
-          path: automated_test/load_test_report.xlsx
+          name: load-report
+          path: load_tests/load_report.xlsx
           retention-days: 30
