@@ -267,7 +267,7 @@ export function getTestCases() {
     });
 
     // Generate remaining test cases up to exactly 100 cases
-    const countToGenerate = 100 - allCases[cat.id].length;
+    const countToGenerate = 340 - allCases[cat.id].length;
     for (let i = 1; i <= countToGenerate; i++) {
       const caseNumber = allCases[cat.id].length + 1;
       const caseId = `${cat.prefix}-${String(caseNumber).padStart(3, '0')}`;

@@ -11,7 +11,7 @@ import mongoose from 'mongoose';
 
 const BASE_URL = 'http://localhost:5000';
 const TEST_DURATION_MS = 60 * 1000; // 1 minute
-const CONCURRENCY = 100; // 100 virtual users
+const CONCURRENCY = 340; // 340 virtual users
 const THINK_TIME_MS = 50; // 50ms delay between requests to simulate user interaction
 
 const ENDPOINTS = [
