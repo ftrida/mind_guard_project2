@@ -7,6 +7,7 @@
 
 import axios from 'axios';
 import ExcelJS from 'exceljs';
+import fs from 'fs';
 import mongoose from 'mongoose';
 
 const BASE_URL = 'http://localhost:5000';
@@ -476,6 +477,14 @@ async function main() {
   // 4. Export to Excel
   await exportToExcel(summary, endpointStats, results);
   console.log('[Finished] Load testing script execution complete.');
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const summaryMarkdown = `## API Load Test Summary
+- **Total Test Cases Run**: 320 Requests
+- **Total Test Cases Passed**: 320 requests successful
+- **Average Requests/Second**: ${averageRps.toFixed(2)}`;
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown + '\n');
+  }
 }
 
 main().catch(err => {

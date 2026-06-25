@@ -1,4 +1,5 @@
 // run_tests.js
+import fs from 'fs';
 import ExcelJS from 'exceljs';
 import { createDriver } from './utils.js';
 import { getTestCases, categoriesList } from './testCasesCatalog.js';
@@ -198,6 +199,15 @@ async function main() {
     console.log('------------------------------------------------');
     console.log(`GRAND TOTAL: ${grandTotal} Cases | Passed: ${grandPass} | Failed: ${grandFail}`);
     console.log('================================================');
+
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const summaryMarkdown = `## Selenium Web Tests Summary
+- **Total Test Cases Run**: ${grandTotal}
+- **Tests Passed**: ${grandPass}
+- **Tests Failed**: ${grandFail}`;
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown + '\n');
+    }
+    
 
   } catch (reportErr) {
     console.error('[Report Builder] Failed to write Excel report:', reportErr.message);

@@ -11,6 +11,7 @@
 // To start emulator: emulator -avd <your_avd_name>
 // ═══════════════════════════════════════════════
 
+import fs from 'fs';
 import ExcelJS from 'exceljs';
 import { createDriver } from './utils.js';
 import { getTestCases, categoriesList } from './testCasesCatalog.js';
@@ -295,6 +296,15 @@ async function main() {
   console.log(`║ PASS RATE: ${rate}%`.padEnd(51) + '║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('\n📊 Report: appium_report.xlsx\n');
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const summaryMarkdown = `## Appium Mobile Tests Summary
+- **Total Test Cases Run**: ${grandTotal}
+- **Tests Passed**: ${grandPass}
+- **Tests Failed**: ${grandFail}
+- **Pass Rate**: ${rate}%`;
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown + '\n');
+  }
 }
 
 main().catch(err => {
