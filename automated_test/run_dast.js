@@ -634,6 +634,20 @@ async function main() {
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🛡️  DETAILED CATEGORY BREAKDOWN                                  ║`);
 
+  
+  const categories = [
+    { id: 'authn_bypass',    name: 'AuthN Bypass',       prefix: 'AB' },
+    { id: 'authz_privesc',   name: 'AuthZ PrivEsc',      prefix: 'AP' },
+    { id: 'idor',            name: 'IDOR',               prefix: 'ID' },
+    { id: 'rbac_matrix',     name: 'RBAC Matrix',        prefix: 'RM' },
+    { id: 'token_tampering', name: 'Token Tampering',    prefix: 'TT' },
+    { id: 'injection',       name: 'Injection Probes',   prefix: 'IJ' },
+    { id: 'rate_limiting',   name: 'Rate Limiting',      prefix: 'RL' },
+    { id: 'hardcoded_creds', name: 'Hardcoded Secrets',  prefix: 'HC' },
+    { id: 'appium_mobile',   name: 'Appium Mobile Tests',prefix: 'AM' },
+    { id: 'selenium_web',    name: 'Selenium Web Tests', prefix: 'SW' },
+  ];
+  
   categories.forEach(cat => {
     const passedCount = results.filter(r => r.test_category === cat.id && !r.finding).length;
     console.log(`║  ✅ ${cat.name.padEnd(20)} : ${String(passedCount).padEnd(4)} Passed (0 Failed)           ║`);
