@@ -1,4 +1,5 @@
 name: frontend backend deployment
+run-name: frontend backend deployment
 
 on:
   push:

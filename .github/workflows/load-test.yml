@@ -1,4 +1,5 @@
 name: load test
+run-name: load test
 
 on:
   push:

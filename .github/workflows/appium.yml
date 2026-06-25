@@ -1,4 +1,5 @@
 name: appium
+run-name: appium
 
 on:
   push:

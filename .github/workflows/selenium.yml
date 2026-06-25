@@ -1,4 +1,5 @@
 name: selinium
+run-name: selinium
 
 on:
   push:
