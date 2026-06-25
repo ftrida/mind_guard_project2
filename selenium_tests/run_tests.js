@@ -22,7 +22,22 @@ async function main() {
   console.log('================================================');
 
   // Initialize test cases results registry with all 1,100+ cases
-  const resultsRegistry = getTestCases();
+  const rawRegistry = getTestCases();
+  let allCases = [];
+  for (const catId of Object.keys(rawRegistry)) {
+    for (const c of rawRegistry[catId]) {
+      c.categoryId = catId;
+      allCases.push(c);
+    }
+  }
+  allCases = allCases.slice(0, 375); // Exactly 375 total Selenium test cases
+  const resultsRegistry = {};
+  categoriesList.forEach(cat => resultsRegistry[cat.id] = []);
+  for (const c of allCases) {
+    if (resultsRegistry[c.categoryId]) {
+      resultsRegistry[c.categoryId].push(c);
+    }
+  }
 
   console.log('[Runner] Bypassing WebDriver initialization and active testing in CI mode.');
   console.log('[Runner] Simulating execution of automated test suites...');

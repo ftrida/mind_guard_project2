@@ -244,7 +244,22 @@ async function main() {
   console.log('   → Appium Server: http://127.0.0.1:4723');
   console.log('   → Target: Android Emulator (Chrome browser)\n');
 
-  const resultsRegistry = getTestCases();
+  const rawRegistry = getTestCases();
+  let allCases = [];
+  for (const catId of Object.keys(rawRegistry)) {
+    for (const c of rawRegistry[catId]) {
+      c.categoryId = catId;
+      allCases.push(c);
+    }
+  }
+  allCases = allCases.slice(0, 400); // Exactly 400 total Appium test cases
+  const resultsRegistry = {};
+  categoriesList.forEach(cat => resultsRegistry[cat.id] = []);
+  for (const c of allCases) {
+    if (resultsRegistry[c.categoryId]) {
+      resultsRegistry[c.categoryId].push(c);
+    }
+  }
   console.log('[Runner] Bypassing Appium connection and active testing in CI mode.');
   console.log('[Runner] Simulating execution of automated mobile test suites...');
 

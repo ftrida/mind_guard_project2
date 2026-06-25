@@ -1,4 +1,4 @@
-name: api load test
+name: load test
 
 on:
   push:
