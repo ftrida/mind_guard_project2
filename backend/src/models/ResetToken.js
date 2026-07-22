@@ -1,32 +1,32 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
 import crypto from 'crypto';
+import { sequelize } from '../config/db.js';
 
-const resetTokenSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+export const ResetToken = sequelize.define('ResetToken', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
-  // Store only the SHA-256 hash — never the raw token
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   tokenHash: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   expiresAt: {
-    type: Date,
-    required: true
+    type: DataTypes.DATE,
+    allowNull: false
   },
   used: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
 
-// Auto-delete expired tokens from DB
-resetTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
-// Static helper: hash a raw token
-resetTokenSchema.statics.hashToken = (rawToken) =>
+ResetToken.hashToken = (rawToken) =>
   crypto.createHash('sha256').update(rawToken).digest('hex');
-
-export const ResetToken = mongoose.model('ResetToken', resetTokenSchema);

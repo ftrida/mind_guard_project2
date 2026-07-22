@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUploadUrl } from '../config';
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -97,11 +98,11 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-slate-200 dark:border-dark-800 space-y-3">
         <div className="flex items-center gap-3">
           <img 
-            src={user?.profilePhoto ? `http://localhost:5000${user.profilePhoto}` : '/uploads/default-avatar.png'} 
+            src={getUploadUrl(user?.profilePhoto)} 
             alt="Profile Avatar" 
             className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-dark-700"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = 'http://localhost:5000/uploads/default-avatar.png';
+              (e.target as HTMLImageElement).src = getUploadUrl('/uploads/default-avatar.png');
             }}
           />
           <div className="flex-1 min-w-0">

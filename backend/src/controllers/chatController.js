@@ -1,42 +1,41 @@
-import { Chat } from '../models/Chat.js';
-import { StressScore } from '../models/StressScore.js';
-import { Notification } from '../models/Notification.js';
+import { Chat, Message, StressScore, Notification } from '../models/index.js';
 import { generateChatResponse, analyzeStressScore } from '../services/aiService.js';
 
-// @desc    Start a new chat session
-// @route   POST /api/chats
-// @access  Private
 export const startChat = async (req, res, next) => {
   try {
     const chat = await Chat.create({
-      user: req.user.id,
-      messages: []
+      userId: req.user.id
     });
 
-    res.status(201).json({ success: true, chat });
+    const fullChat = await Chat.findByPk(chat.id, {
+      include: [{ model: Message, as: 'messages' }]
+    });
+
+    res.status(201).json({ success: true, chat: fullChat });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get user's chat sessions
-// @route   GET /api/chats
-// @access  Private
 export const getChats = async (req, res, next) => {
   try {
-    const chats = await Chat.find({ user: req.user.id }).sort({ updatedAt: -1 });
+    const chats = await Chat.findAll({
+      where: { userId: req.user.id },
+      order: [['updatedAt', 'DESC']],
+      include: [{ model: Message, as: 'messages' }]
+    });
     res.status(200).json({ success: true, count: chats.length, chats });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get specific chat by ID
-// @route   GET /api/chats/:id
-// @access  Private
 export const getChatById = async (req, res, next) => {
   try {
-    const chat = await Chat.findOne({ _id: req.params.id, user: req.user.id });
+    const chat = await Chat.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+      include: [{ model: Message, as: 'messages' }]
+    });
     if (!chat) {
       return res.status(404).json({ success: false, error: 'Chat session not found' });
     }
@@ -46,9 +45,6 @@ export const getChatById = async (req, res, next) => {
   }
 };
 
-// @desc    Send a message in a session and get AI response + stress analysis
-// @route   POST /api/chats/:id/messages
-// @access  Private
 export const sendMessage = async (req, res, next) => {
   try {
     const { content } = req.body;
@@ -56,48 +52,67 @@ export const sendMessage = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please enter a message' });
     }
 
-    const chat = await Chat.findOne({ _id: req.params.id, user: req.user.id });
+    const chat = await Chat.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+      include: [{ model: Message, as: 'messages' }]
+    });
     if (!chat) {
       return res.status(404).json({ success: false, error: 'Chat session not found' });
     }
 
-    // 1. Generate AI Response
-    const aiText = await generateChatResponse(chat.messages, content);
+    const existingMessages = chat.messages || [];
 
-    // 2. Analyze Stress Score of user message
+    // 1. Generate AI Response
+    const aiText = await generateChatResponse(existingMessages, content);
+
+    // 2. Analyze Stress Score
     const analysis = await analyzeStressScore(content, aiText);
 
-    // 3. Push Messages to Schema
-    chat.messages.push({ sender: 'user', content, sentimentScore: (100 - analysis.score) / 50 - 1 });
-    chat.messages.push({ sender: 'ai', content: aiText });
+    // 3. Save User Message & AI Message
+    await Message.create({
+      chatId: chat.id,
+      sender: 'user',
+      content,
+      sentimentScore: (100 - analysis.score) / 50 - 1
+    });
 
-    // Update session stress score and notes
+    await Message.create({
+      chatId: chat.id,
+      sender: 'ai',
+      content: aiText
+    });
+
+    // Update session stats
     chat.stressScore = analysis.score;
     chat.category = analysis.category;
     chat.aiNotes = analysis.explanation;
     await chat.save();
 
-    // 4. Save to historical StressScores collection
+    // 4. Save StressScore
     await StressScore.create({
-      user: req.user.id,
+      userId: req.user.id,
       score: analysis.score,
       category: analysis.category,
       source: 'Chat'
     });
 
-    // 5. Trigger System Notification if Stress is High or Critical
+    // 5. Trigger Notification
     if (analysis.category === 'Critical' || analysis.category === 'High') {
       await Notification.create({
-        user: req.user.id,
+        userId: req.user.id,
         title: `${analysis.category} Stress Detected`,
         message: `Your chat session indicated high tension. Please check our breathing and meditation shortcuts.`,
         type: 'stress_alert'
       });
     }
 
+    const updatedChat = await Chat.findByPk(chat.id, {
+      include: [{ model: Message, as: 'messages' }]
+    });
+
     res.status(200).json({
       success: true,
-      chat,
+      chat: updatedChat,
       analysis: {
         score: analysis.score,
         category: analysis.category,

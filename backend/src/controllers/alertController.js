@@ -1,45 +1,39 @@
-import { EmergencyAlert } from '../models/EmergencyAlert.js';
-import { User } from '../models/User.js';
-import { Notification } from '../models/Notification.js';
-import { AuditLog } from '../models/AuditLog.js';
+import { Op } from 'sequelize';
+import { User, EmergencyAlert, Notification, AuditLog } from '../models/index.js';
 import { Resend } from 'resend';
 
-/* =========================
-   SAFE RESEND INITIALIZER
-   ========================= */
 const getResendClient = () => {
   const key = process.env.RESEND_API_KEY;
-
   if (!key) {
     throw new Error("❌ RESEND_API_KEY is missing in .env file");
   }
-
   return new Resend(key);
 };
 
-/* =========================
-   MAIN CONTROLLER
-   ========================= */
 export const triggerEmergency = async (req, res, next) => {
   try {
     const { triggeredByScore } = req.body;
 
-    const user = await User.findById(req.user.id);
-    const emergencyContact = user.emergencyContact || {};
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
 
-    if (!emergencyContact.name) {
+    const contactName = user.emergencyContactName;
+    const contactPhone = user.emergencyContactPhone;
+    const contactEmail = user.emergencyContactEmail;
+
+    if (!contactName) {
       return res.status(400).json({
         success: false,
         error: 'No emergency contact registered. Please configure it in Profile settings.'
       });
     }
 
-    // FIX: Validate and clamp score — never trust the raw client-supplied value
     const rawScore = Number(triggeredByScore);
     const score = !isNaN(rawScore) ? Math.max(0, Math.min(100, rawScore)) : 90;
 
     const emailSubject = `🚨 MindGuard EMERGENCY ALERT: ${user.fullName}`;
-
     const messageContent = `
 Emergency Alert,
 
@@ -49,78 +43,51 @@ Stress Level: ${score}/100
 Phone: ${user.phone || 'N/A'}
 Department: ${user.department || 'N/A'}
 
-Emergency Contact: ${emergencyContact.name}
+Emergency Contact: ${contactName}
 
 Please reach out immediately.
 `;
 
     let emailSent = false;
-    let smsSent = false;
     let errorLog = [];
 
-    /* =========================
-       EMAIL (RESEND SAFE)
-       ========================= */
-    if (emergencyContact.email && process.env.RESEND_API_KEY) {
+    if (contactEmail && process.env.RESEND_API_KEY) {
       try {
         const resend = getResendClient();
-
         const response = await resend.emails.send({
           from: "MindGuard <alerts@resend.dev>",
-          to: emergencyContact.email,
+          to: contactEmail,
           subject: emailSubject,
           text: messageContent,
         });
-
         emailSent = true;
         console.log("✅ EMAIL SENT:", response.id);
-
       } catch (err) {
         console.log("❌ EMAIL FAILED:", err.message);
         errorLog.push(`Email: ${err.message}`);
       }
-    } else {
-      console.log("⚠️ Email skipped (missing config or recipient)");
     }
 
-    /* =========================
-       SMS DISABLED
-       ========================= */
-    console.log("ℹ️ SMS skipped (not configured)");
-
-    /* =========================
-       LOG OUTPUT
-       ========================= */
-    console.log("\n🚨 MINDGUARD EMERGENCY ALERT 🚨");
-    console.log(`EMPLOYEE: ${user.fullName}`);
-    console.log(`CONTACT: ${emergencyContact.name}`);
-    console.log(`SCORE: ${score}`);
-    console.log(`EMAIL SENT: ${emailSent}`);
-    console.log("ERRORS:", errorLog);
-    console.log("====================================\n");
-
-    /* =========================
-       SAVE ALERT
-       ========================= */
     const alert = await EmergencyAlert.create({
-      user: user._id,
-      contactName: emergencyContact.name,
-      contactPhone: emergencyContact.phone || null,
-      contactEmail: emergencyContact.email || null,
+      userId: user.id,
+      contactName,
+      contactPhone: contactPhone || null,
+      contactEmail: contactEmail || null,
       triggeredByScore: score,
       status: emailSent ? 'sent' : 'failed',
       details: errorLog.length ? errorLog.join(" | ") : "Processed"
     });
 
-    /* =========================
-       ADMIN NOTIFICATIONS
-       ========================= */
-    const admins = await User.find({ role: { $in: ['Admin', 'Super Admin'] } });
+    const admins = await User.findAll({
+      where: {
+        role: { [Op.in]: ['Admin', 'Super Admin'] }
+      }
+    });
 
     await Promise.all(
       admins.map(admin =>
         Notification.create({
-          user: admin._id,
+          userId: admin.id,
           title: `🚨 Emergency: ${user.fullName}`,
           message: `Critical stress alert triggered. Score: ${score}`,
           type: 'stress_alert'
@@ -128,19 +95,13 @@ Please reach out immediately.
       )
     );
 
-    /* =========================
-       AUDIT LOG
-       ========================= */
     await AuditLog.create({
-      actor: user._id,
+      actorId: user.id,
       actorEmail: user.email,
       action: 'EMERGENCY_TRIGGER',
-      details: `Score ${score}, Contact ${emergencyContact.name}`
+      details: `Score ${score}, Contact ${contactName}`
     });
 
-    /* =========================
-       RESPONSE
-       ========================= */
     res.status(201).json({
       success: true,
       alert,
@@ -155,20 +116,18 @@ Please reach out immediately.
   }
 };
 
-/* =========================
-   HISTORY API
-   ========================= */
 export const getAlertHistory = async (req, res, next) => {
   try {
-    const alerts = await EmergencyAlert.find({ user: req.user.id })
-      .sort({ createdAt: -1 });
+    const alerts = await EmergencyAlert.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']]
+    });
 
     res.status(200).json({
       success: true,
       count: alerts.length,
       alerts
     });
-
   } catch (error) {
     next(error);
   }

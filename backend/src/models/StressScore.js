@@ -1,13 +1,32 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const stressScoreSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  score: { type: Number, required: true }, // 0 to 100
-  category: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], required: true },
-  source: { type: String, default: 'Chat' }, // 'Chat', 'MoodLog', etc.
-  timestamp: { type: Date, default: Date.now }
+export const StressScore = sequelize.define('StressScore', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  score: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  category: {
+    type: DataTypes.ENUM('Low', 'Medium', 'High', 'Critical'),
+    allowNull: false
+  },
+  source: {
+    type: DataTypes.STRING,
+    defaultValue: 'Chat'
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
-
-export const StressScore = mongoose.model('StressScore', stressScoreSchema);

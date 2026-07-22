@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
-import { TokenDenylist } from '../models/TokenDenylist.js';
+import { User, TokenDenylist } from '../models/index.js';
 
 export const protect = async (req, res, next) => {
   let token;
@@ -28,16 +27,16 @@ export const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // FIX F-11: Check if this token has been revoked (logout denylist)
+    // Check if token revoked
     if (decoded.jti) {
-      const revoked = await TokenDenylist.findOne({ jti: decoded.jti });
+      const revoked = await TokenDenylist.findOne({ where: { jti: decoded.jti } });
       if (revoked) {
         return res.status(401).json({ success: false, error: 'Token has been revoked. Please log in again.' });
       }
     }
 
-    // Get user from database
-    const user = await User.findById(decoded.id);
+    // Get user from database using Sequelize findByPk
+    const user = await User.findByPk(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, error: 'User no longer exists' });
     }

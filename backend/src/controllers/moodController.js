@@ -1,9 +1,5 @@
-import { MoodLog } from '../models/MoodLog.js';
-import { StressScore } from '../models/StressScore.js';
+import { MoodLog, StressScore } from '../models/index.js';
 
-// @desc    Log today's mood
-// @route   POST /api/mood
-// @access  Private
 export const logMood = async (req, res, next) => {
   try {
     const { mood, note } = req.body;
@@ -12,7 +8,6 @@ export const logMood = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please select a mood' });
     }
 
-    // Map mood type to an estimated stress equivalent to save in StressScore
     const moodStressMap = {
       'Happy': 10,
       'Calm': 15,
@@ -27,14 +22,13 @@ export const logMood = async (req, res, next) => {
     const estimatedCategory = estimatedScore > 70 ? 'High' : (estimatedScore > 40 ? 'Medium' : 'Low');
 
     const moodLog = await MoodLog.create({
-      user: req.user.id,
+      userId: req.user.id,
       mood,
       note
     });
 
-    // Save as stress score log
     await StressScore.create({
-      user: req.user.id,
+      userId: req.user.id,
       score: estimatedScore,
       category: estimatedCategory,
       source: 'MoodLog'
@@ -46,12 +40,12 @@ export const logMood = async (req, res, next) => {
   }
 };
 
-// @desc    Get user mood log history
-// @route   GET /api/mood
-// @access  Private
 export const getMoodHistory = async (req, res, next) => {
   try {
-    const history = await MoodLog.find({ user: req.user.id }).sort({ timestamp: -1 });
+    const history = await MoodLog.findAll({
+      where: { userId: req.user.id },
+      order: [['timestamp', 'DESC']]
+    });
     res.status(200).json({ success: true, count: history.length, history });
   } catch (error) {
     next(error);

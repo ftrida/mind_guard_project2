@@ -1,8 +1,5 @@
-import { GameScore } from '../models/GameScore.js';
+import { sequelize, GameScore, User } from '../models/index.js';
 
-// @desc    Save game score
-// @route   POST /api/games
-// @access  Private
 export const saveGameScore = async (req, res, next) => {
   try {
     const { gameName, score } = req.body;
@@ -12,7 +9,7 @@ export const saveGameScore = async (req, res, next) => {
     }
 
     const gameLog = await GameScore.create({
-      user: req.user.id,
+      userId: req.user.id,
       gameName,
       score: Number(score)
     });
@@ -23,51 +20,37 @@ export const saveGameScore = async (req, res, next) => {
   }
 };
 
-// @desc    Get leaderboard rankings
-// @route   GET /api/games/leaderboard
-// @access  Private
 export const getLeaderboard = async (req, res, next) => {
   try {
     const { gameName } = req.query;
 
-    const query = gameName ? { gameName } : {};
+    const whereClause = gameName ? { gameName } : {};
 
-    // Get top scores grouped by user to show highest score per user
-    const leaderboard = await GameScore.aggregate([
-      { $match: query },
-      { $sort: { score: -1 } },
-      {
-        $group: {
-          _id: '$user',
-          highestScore: { $first: '$score' },
-          gameName: { $first: '$gameName' },
-          timestamp: { $first: '$timestamp' }
-        }
-      },
-      { $sort: { highestScore: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'userDetails'
-        }
-      },
-      { $unwind: '$userDetails' },
-      {
-        $project: {
-          _id: 1,
-          highestScore: 1,
-          gameName: 1,
-          timestamp: 1,
-          'userDetails.fullName': 1,
-          'userDetails.email': 1,
-          'userDetails.profilePhoto': 1,
-          'userDetails.department': 1
-        }
+    const rawScores = await GameScore.findAll({
+      where: whereClause,
+      order: [['score', 'DESC']],
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'fullName', 'email', 'profilePhoto', 'department']
+      }]
+    });
+
+    // Filter to highest score per user
+    const userMap = new Map();
+    rawScores.forEach(entry => {
+      if (!userMap.has(entry.userId)) {
+        userMap.set(entry.userId, {
+          _id: entry.userId,
+          highestScore: entry.score,
+          gameName: entry.gameName,
+          timestamp: entry.createdAt,
+          userDetails: entry.user
+        });
       }
-    ]);
+    });
+
+    const leaderboard = Array.from(userMap.values()).slice(0, 10);
 
     res.status(200).json({ success: true, count: leaderboard.length, leaderboard });
   } catch (error) {

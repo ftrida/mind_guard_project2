@@ -1,22 +1,62 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const messageSchema = new mongoose.Schema({
-  sender: { type: String, enum: ['user', 'ai'], required: true },
-  content: { type: String, required: true },
-  sentimentScore: { type: Number, default: 0 }, // -1 (negative) to +1 (positive)
-  timestamp: { type: Date, default: Date.now }
-});
-
-const chatSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  stressScore: { type: Number, default: 0 }, // Calculated stress score (0-100)
-  category: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Low' },
-  isCompleted: { type: Boolean, default: false },
-  messages: [messageSchema],
-  aiNotes: { type: String, default: '' }
+export const Chat = sequelize.define('Chat', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  stressScore: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  category: {
+    type: DataTypes.ENUM('Low', 'Medium', 'High', 'Critical'),
+    defaultValue: 'Low'
+  },
+  isCompleted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  aiNotes: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  }
 }, {
   timestamps: true
 });
 
-export const Chat = mongoose.model('Chat', chatSchema);
-export const Message = mongoose.model('Message', messageSchema);
+export const Message = sequelize.define('Message', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  chatId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  sender: {
+    type: DataTypes.ENUM('user', 'ai'),
+    allowNull: false
+  },
+  content: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  sentimentScore: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  timestamps: true
+});

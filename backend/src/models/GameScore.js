@@ -1,16 +1,28 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const gameScoreSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  gameName: { 
-    type: String, 
-    enum: ['Memory Match', 'Breathing Tap', 'Focus Challenge', 'Color Relax'], 
-    required: true 
+export const GameScore = sequelize.define('GameScore', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
-  score: { type: Number, required: true },
-  timestamp: { type: Date, default: Date.now }
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  gameName: {
+    type: DataTypes.ENUM('Memory Match', 'Breathing Tap', 'Focus Challenge', 'Color Relax'),
+    allowNull: false
+  },
+  score: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
-
-export const GameScore = mongoose.model('GameScore', gameScoreSchema);

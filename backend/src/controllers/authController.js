@@ -1,38 +1,30 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { User } from '../models/User.js';
-import { Settings } from '../models/Settings.js';
-import { AuditLog } from '../models/AuditLog.js';
-import { ResetToken } from '../models/ResetToken.js';
-import { TokenDenylist } from '../models/TokenDenylist.js';
+import { Op } from 'sequelize';
+import { User, Settings, AuditLog, ResetToken, TokenDenylist } from '../models/index.js';
 import nodemailer from 'nodemailer';
 
-// ── JWT HELPER ────────────────────────────────────────────────────────────────
-// FIX F-03: No hardcoded fallback — JWT_SECRET must come from environment only.
-// FIX F-10: Token is set in httpOnly cookie ONLY — not returned in response body.
-// FIX F-11: Every token gets a unique jti (JWT ID) so it can be individually revoked.
-// FIX F-12: secure flag is always true — use HTTPS (mkcert) in development.
 const sendTokenResponse = (user, statusCode, res) => {
-  const jti = crypto.randomUUID(); // unique token ID for denylist support
+  const jti = crypto.randomUUID();
 
   const token = jwt.sign(
-    { id: user._id, jti },
-    process.env.JWT_SECRET,           // no fallback — server.js ensures this is set
+    { id: user.id, jti },
+    process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 
   const cookieOptions = {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    httpOnly: true,                     // not readable by JavaScript
-    secure: true,                       // FIX F-12: always require HTTPS
+    httpOnly: true,
+    secure: true,
     sameSite: 'lax'
   };
 
-  // FIX F-10: Token NOT included in JSON body — cookie only
   res.status(statusCode).cookie('token', token, cookieOptions).json({
     success: true,
+    token, // Also return token for clients storing in localStorage
     user: {
-      id: user._id,
+      id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
@@ -44,9 +36,6 @@ const sendTokenResponse = (user, statusCode, res) => {
   });
 };
 
-// @desc    Register a new employee/user
-// @route   POST /api/auth/register
-// @access  Public
 export const register = async (req, res, next) => {
   try {
     const {
@@ -55,7 +44,7 @@ export const register = async (req, res, next) => {
       emergencyContactName, emergencyContactPhone, emergencyContactEmail, phone
     } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ where: { email } });
     if (userExists) {
       return res.status(400).json({ success: false, error: 'User already registered with this email' });
     }
@@ -63,23 +52,28 @@ export const register = async (req, res, next) => {
     const profilePhoto = req.file ? `/uploads/${req.file.filename}` : '/uploads/default-avatar.png';
 
     const user = await User.create({
-      fullName, email, password,
-      age: age ? Number(age) : undefined,
-      gender, company, employeeId, department, companyId,
-      emergencyContact: {
-        name: emergencyContactName,
-        phone: emergencyContactPhone,
-        email: emergencyContactEmail
-      },
-      phone, profilePhoto,
+      fullName,
+      email,
+      password,
+      age: age ? Number(age) : null,
+      gender,
+      company,
+      employeeId,
+      department,
+      companyId,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactEmail,
+      phone,
+      profilePhoto,
       streak: 1,
       lastActive: new Date()
     });
 
-    await Settings.create({ user: user._id });
+    await Settings.create({ userId: user.id });
 
     await AuditLog.create({
-      actor: user._id,
+      actorId: user.id,
       actorEmail: user.email,
       action: 'REGISTER',
       details: `User registered: ${user.fullName} (${user.role})`
@@ -91,9 +85,6 @@ export const register = async (req, res, next) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -102,7 +93,7 @@ export const login = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
@@ -128,7 +119,7 @@ export const login = async (req, res, next) => {
     await user.save();
 
     await AuditLog.create({
-      actor: user._id,
+      actorId: user.id,
       actorEmail: user.email,
       action: 'LOGIN',
       details: `User logged in: ${user.fullName}`
@@ -140,12 +131,8 @@ export const login = async (req, res, next) => {
   }
 };
 
-// @desc    Logout user — revoke JWT via denylist + clear cookie
-// @route   GET /api/auth/logout
-// @access  Private
 export const logout = async (req, res, next) => {
   try {
-    // FIX F-11: Revoke the current token by adding its jti to the denylist
     const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
     if (token) {
       try {
@@ -153,7 +140,7 @@ export const logout = async (req, res, next) => {
         if (decoded.jti && decoded.exp) {
           await TokenDenylist.create({
             jti: decoded.jti,
-            expiresAt: new Date(decoded.exp * 1000) // convert Unix timestamp
+            expiresAt: new Date(decoded.exp * 1000)
           });
         }
       } catch {
@@ -163,7 +150,7 @@ export const logout = async (req, res, next) => {
 
     if (req.user) {
       await AuditLog.create({
-        actor: req.user._id,
+        actorId: req.user.id,
         actorEmail: req.user.email,
         action: 'LOGOUT',
         details: `User logged out: ${req.user.fullName}`
@@ -183,13 +170,10 @@ export const logout = async (req, res, next) => {
   }
 };
 
-// @desc    Get current logged in user details
-// @route   GET /api/auth/me
-// @access  Private
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    const settings = await Settings.findOne({ user: req.user.id });
+    const user = await User.findByPk(req.user.id);
+    const settings = await Settings.findOne({ where: { userId: req.user.id } });
 
     res.status(200).json({ success: true, user, settings });
   } catch (error) {
@@ -197,15 +181,11 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-// @desc    Forgot Password — send reset link via email only
-// @route   POST /api/auth/forgot-password
-// @access  Public
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
 
-    // FIX: Always return the same response whether user exists or not (prevents email enumeration)
     const genericResponse = {
       success: true,
       message: 'If an account with that email exists, a password reset link has been sent.'
@@ -215,22 +195,15 @@ export const forgotPassword = async (req, res, next) => {
       return res.status(200).json(genericResponse);
     }
 
-    // Generate raw token (only ever sent in the email — never in the API response)
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = ResetToken.hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // FIX F-04: Invalidate any previous unused tokens for this user
-    await ResetToken.deleteMany({ user: user._id });
+    await ResetToken.destroy({ where: { userId: user.id } });
+    await ResetToken.create({ userId: user.id, tokenHash, expiresAt });
 
-    // FIX F-04: Store only the hash — raw token never touches the database
-    await ResetToken.create({ user: user._id, tokenHash, expiresAt });
-
-    // Build reset URL — raw token goes into email only
     const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${rawToken}`;
 
-    // FIX F-06: No console.log of the token, email, or reset URL
-    // Attempt SMTP delivery
     try {
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         const transporter = nodemailer.createTransport({
@@ -250,20 +223,15 @@ export const forgotPassword = async (req, res, next) => {
         });
       }
     } catch (emailErr) {
-      // FIX F-06: Log error type only — no token or email address in logs
       console.error('SMTP delivery failed:', emailErr.code || emailErr.message);
     }
 
-    // FIX F-02: Token is NOT included in the response — email channel only
     res.status(200).json(genericResponse);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Reset Password using token from email link
-// @route   POST /api/auth/reset-password/:resettoken
-// @access  Public
 export const resetPassword = async (req, res, next) => {
   try {
     const { resettoken } = req.params;
@@ -273,30 +241,30 @@ export const resetPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Please provide a new password' });
     }
 
-    // FIX F-04: Look up hashed token in database — raw token never stored
     const tokenHash = ResetToken.hashToken(resettoken);
     const tokenRecord = await ResetToken.findOne({
-      tokenHash,
-      used: false,
-      expiresAt: { $gt: new Date() } // not expired
+      where: {
+        tokenHash,
+        used: false,
+        expiresAt: { [Op.gt]: new Date() }
+      }
     });
 
     if (!tokenRecord) {
       return res.status(400).json({ success: false, error: 'Invalid or expired reset token' });
     }
 
-    const user = await User.findById(tokenRecord.user);
+    const user = await User.findByPk(tokenRecord.userId);
     if (!user) {
       return res.status(404).json({ success: false, error: 'User no longer exists' });
     }
 
-    // Update password and invalidate the token
     user.password = password;
     await user.save();
-    await ResetToken.deleteOne({ _id: tokenRecord._id });
+    await ResetToken.destroy({ where: { id: tokenRecord.id } });
 
     await AuditLog.create({
-      actor: user._id,
+      actorId: user.id,
       actorEmail: user.email,
       action: 'PASSWORD_RESET',
       details: `Password reset successfully for ${user.fullName}`

@@ -1,18 +1,36 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const notificationSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  title: { type: String, required: true },
-  message: { type: String, required: true },
-  type: { 
-    type: String, 
-    enum: ['reminder', 'meditation', 'mood', 'stress_alert', 'recommendation'], 
-    required: true 
+export const Notification = sequelize.define('Notification', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
-  isRead: { type: Boolean, default: false },
-  timestamp: { type: Date, default: Date.now }
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  message: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  type: {
+    type: DataTypes.ENUM('reminder', 'meditation', 'mood', 'stress_alert', 'recommendation'),
+    allowNull: false
+  },
+  isRead: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
-
-export const Notification = mongoose.model('Notification', notificationSchema);

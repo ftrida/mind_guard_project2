@@ -1,35 +1,31 @@
-import { Notification } from '../models/Notification.js';
+import { Notification } from '../models/index.js';
 
-// @desc    Get user's notifications
-// @route   GET /api/notifications
-// @access  Private
 export const getNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const notifications = await Notification.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']]
+    });
     res.status(200).json({ success: true, count: notifications.length, notifications });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get count of unread notifications
-// @route   GET /api/notifications/unread-count
-// @access  Private
 export const getUnreadCount = async (req, res, next) => {
   try {
-    const count = await Notification.countDocuments({ user: req.user.id, isRead: false });
+    const count = await Notification.count({ where: { userId: req.user.id, isRead: false } });
     res.status(200).json({ success: true, count });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Mark a single notification as read
-// @route   PATCH /api/notifications/:id/read
-// @access  Private
 export const markAsRead = async (req, res, next) => {
   try {
-    const notification = await Notification.findOne({ _id: req.params.id, user: req.user.id });
+    const notification = await Notification.findOne({
+      where: { id: req.params.id, userId: req.user.id }
+    });
 
     if (!notification) {
       return res.status(404).json({ success: false, error: 'Notification not found' });
@@ -44,12 +40,12 @@ export const markAsRead = async (req, res, next) => {
   }
 };
 
-// @desc    Mark all user notifications as read
-// @route   PATCH /api/notifications/read-all
-// @access  Private
 export const markAllAsRead = async (req, res, next) => {
   try {
-    await Notification.updateMany({ user: req.user.id, isRead: false }, { isRead: true });
+    await Notification.update(
+      { isRead: true },
+      { where: { userId: req.user.id, isRead: false } }
+    );
     res.status(200).json({ success: true, message: 'All notifications marked as read' });
   } catch (error) {
     next(error);

@@ -1,20 +1,13 @@
-import { User } from '../models/User.js';
-import { Settings } from '../models/Settings.js';
-import { StressScore } from '../models/StressScore.js';
-import { MoodLog } from '../models/MoodLog.js';
-import { FocusSession } from '../models/FocusSession.js';
-import { MeditationHistory } from '../models/Meditation.js';
-import { Notification } from '../models/Notification.js';
+import { User, Settings, StressScore, MoodLog, FocusSession, MeditationHistory, Notification } from '../models/index.js';
 
 export const seedDatabase = async () => {
-  // FIX F-13: Seeder must NEVER run in production — only in development
   if (process.env.NODE_ENV === 'production') {
     console.log('Seeder disabled in production.');
     return;
   }
 
   try {
-    const userCount = await User.countDocuments();
+    const userCount = await User.count();
     if (userCount > 0) {
       console.log('Database already has data. Skipping seeder.');
       return;
@@ -22,7 +15,6 @@ export const seedDatabase = async () => {
 
     console.log('Database is empty. Seeding default data...');
 
-    // FIX F-13: Read seed password from environment — never hardcode in source
     const seedPassword = process.env.SEED_PASSWORD;
     if (!seedPassword) {
       console.error('SEED_PASSWORD env var not set. Skipping seeder to avoid insecure defaults.');
@@ -41,17 +33,15 @@ export const seedDatabase = async () => {
       employeeId: 'EMP-9082',
       department: 'Engineering',
       companyId: 'ACME-100',
-      emergencyContact: {
-        name: 'Jane Doe',
-        phone: '+15550199',
-        email: 'jane@emergency.com'
-      },
+      emergencyContactName: 'Jane Doe',
+      emergencyContactPhone: '+15550199',
+      emergencyContactEmail: 'jane@emergency.com',
       phone: '+15550100',
       profilePhoto: '/uploads/default-avatar.png',
       streak: 5,
       lastActive: new Date()
     });
-    await Settings.create({ user: employee._id });
+    await Settings.create({ userId: employee.id });
 
     const admin = await User.create({
       fullName: 'Alice Smith',
@@ -69,7 +59,7 @@ export const seedDatabase = async () => {
       streak: 3,
       lastActive: new Date()
     });
-    await Settings.create({ user: admin._id });
+    await Settings.create({ userId: admin.id });
 
     const superAdmin = await User.create({
       fullName: 'Robert Johnson',
@@ -87,9 +77,9 @@ export const seedDatabase = async () => {
       streak: 1,
       lastActive: new Date()
     });
-    await Settings.create({ user: superAdmin._id });
+    await Settings.create({ userId: superAdmin.id });
 
-    // 2. Seed Stress History (Last 7 days)
+    // 2. Seed Stress History
     const stressData = [
       { offset: 6, score: 25, category: 'Low',      source: 'Chat' },
       { offset: 5, score: 35, category: 'Medium',   source: 'Chat' },
@@ -104,7 +94,7 @@ export const seedDatabase = async () => {
       const date = new Date();
       date.setDate(date.getDate() - data.offset);
       await StressScore.create({
-        user: employee._id,
+        userId: employee.id,
         score: data.score,
         category: data.category,
         source: data.source,
@@ -125,7 +115,7 @@ export const seedDatabase = async () => {
       const date = new Date();
       date.setDate(date.getDate() - data.offset);
       await MoodLog.create({
-        user: employee._id,
+        userId: employee.id,
         mood: data.mood,
         note: data.note,
         createdAt: date
@@ -143,7 +133,7 @@ export const seedDatabase = async () => {
       const date = new Date();
       date.setDate(date.getDate() - data.offset);
       await FocusSession.create({
-        user: employee._id,
+        userId: employee.id,
         durationMinutes: data.duration,
         status: data.status,
         taskName: data.task,
@@ -160,7 +150,7 @@ export const seedDatabase = async () => {
       const date = new Date();
       date.setDate(date.getDate() - data.offset);
       await MeditationHistory.create({
-        user: employee._id,
+        userId: employee.id,
         trackId: data.trackId,
         trackTitle: data.title,
         category: data.cat,
@@ -171,13 +161,12 @@ export const seedDatabase = async () => {
 
     // 5. Welcome Notification
     await Notification.create({
-      user: employee._id,
+      userId: employee.id,
       title: 'Welcome to MindGuard!',
       message: 'Explore your wellness toolkit: check your stress dashboard, try guided breathing meditation, or chat with our AI wellness coach.',
       type: 'recommendation'
     });
 
-    // FIX F-13: No credentials printed to console output
     console.log('Seeding complete. Default accounts created for development.');
   } catch (error) {
     console.error('Failed to seed database:', error.message);

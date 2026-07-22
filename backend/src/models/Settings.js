@@ -1,18 +1,37 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const settingsSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-  darkMode: { type: Boolean, default: false },
-  notificationsEnabled: { type: Boolean, default: true },
-  privacySettings: {
-    shareStressWithAdmin: { type: Boolean, default: true }
+export const Settings = sequelize.define('Settings', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
-  language: { type: String, default: 'en' },
-  aiPreferences: {
-    conversationStyle: { type: String, enum: ['Supportive', 'Direct', 'Coach'], default: 'Supportive' }
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    unique: true
+  },
+  darkMode: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  notificationsEnabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  shareStressWithAdmin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  language: {
+    type: DataTypes.STRING,
+    defaultValue: 'en'
+  },
+  conversationStyle: {
+    type: DataTypes.ENUM('Supportive', 'Direct', 'Coach'),
+    defaultValue: 'Supportive'
   }
 }, {
   timestamps: true
 });
-
-export const Settings = mongoose.model('Settings', settingsSchema);

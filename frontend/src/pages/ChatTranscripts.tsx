@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../context/AuthContext';
+import { getUploadUrl } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, ArrowLeft, Brain, Clock, User2, AlertTriangle } from 'lucide-react';
 
@@ -83,10 +84,10 @@ export const ChatTranscripts: React.FC = () => {
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <img
-                    src={`http://localhost:5000${t.user?.profilePhoto}`}
+                    src={getUploadUrl(t.user?.profilePhoto)}
                     className="w-7 h-7 rounded-full object-cover border border-slate-100"
                     alt=""
-                    onError={e => { (e.target as HTMLImageElement).src = 'http://localhost:5000/uploads/default-avatar.png'; }}
+                    onError={e => { (e.target as HTMLImageElement).src = getUploadUrl('/uploads/default-avatar.png'); }}
                   />
                   <span className="font-bold text-xs text-slate-800 dark:text-white truncate">{t.user?.fullName}</span>
                 </div>
@@ -117,10 +118,10 @@ export const ChatTranscripts: React.FC = () => {
             <div className="p-4 bg-white dark:bg-dark-900 border-b border-slate-200 dark:border-dark-800 flex items-center justify-between px-6">
               <div className="flex items-center gap-3">
                 <img
-                  src={`http://localhost:5000${selected.user?.profilePhoto}`}
+                  src={getUploadUrl(selected.user?.profilePhoto)}
                   className="w-10 h-10 rounded-full object-cover border border-slate-100"
                   alt=""
-                  onError={e => { (e.target as HTMLImageElement).src = 'http://localhost:5000/uploads/default-avatar.png'; }}
+                  onError={e => { (e.target as HTMLImageElement).src = getUploadUrl('/uploads/default-avatar.png'); }}
                 />
                 <div>
                   <h3 className="font-bold text-slate-800 dark:text-white text-sm">{selected.user?.fullName}</h3>

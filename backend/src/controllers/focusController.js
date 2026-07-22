@@ -1,8 +1,5 @@
-import { FocusSession } from '../models/FocusSession.js';
+import { FocusSession } from '../models/index.js';
 
-// @desc    Log a focus timer session
-// @route   POST /api/focus
-// @access  Private
 export const saveFocusSession = async (req, res, next) => {
   try {
     const { durationMinutes, status, taskName } = req.body;
@@ -12,7 +9,7 @@ export const saveFocusSession = async (req, res, next) => {
     }
 
     const session = await FocusSession.create({
-      user: req.user.id,
+      userId: req.user.id,
       durationMinutes,
       status,
       taskName
@@ -24,12 +21,12 @@ export const saveFocusSession = async (req, res, next) => {
   }
 };
 
-// @desc    Get user's focus sessions
-// @route   GET /api/focus
-// @access  Private
 export const getFocusSessions = async (req, res, next) => {
   try {
-    const sessions = await FocusSession.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const sessions = await FocusSession.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']]
+    });
     res.status(200).json({ success: true, count: sessions.length, sessions });
   } catch (error) {
     next(error);

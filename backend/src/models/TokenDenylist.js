@@ -1,20 +1,21 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const tokenDenylistSchema = new mongoose.Schema({
-  // JWT ID (jti) claim of the revoked token
+export const TokenDenylist = sequelize.define('TokenDenylist', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
   jti: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true
   },
-  // When this token would have naturally expired — used for TTL cleanup
   expiresAt: {
-    type: Date,
-    required: true
+    type: DataTypes.DATE,
+    allowNull: false
   }
-}, { timestamps: true });
-
-// Auto-delete denylist entries once the JWT they block has naturally expired
-tokenDenylistSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
-export const TokenDenylist = mongoose.model('TokenDenylist', tokenDenylistSchema);
+}, {
+  timestamps: true
+});

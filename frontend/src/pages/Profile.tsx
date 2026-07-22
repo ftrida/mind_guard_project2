@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth, api } from '../context/AuthContext';
+import { getUploadUrl } from '../config';
 import { 
   User, Mail, Phone, ShieldAlert, Upload, 
   CheckCircle2, AlertCircle, RefreshCw
@@ -101,11 +102,11 @@ export const Profile: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-dark-850">
             <div className="relative w-24 h-24 rounded-full border border-slate-200 dark:border-dark-750 overflow-hidden bg-slate-50">
               <img 
-                src={photoPreview || (user?.profilePhoto ? `http://localhost:5000${user.profilePhoto}` : '/uploads/default-avatar.png')} 
+                src={photoPreview || getUploadUrl(user?.profilePhoto)} 
                 alt="Avatar" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'http://localhost:5000/uploads/default-avatar.png';
+                  (e.target as HTMLImageElement).src = getUploadUrl('/uploads/default-avatar.png');
                 }}
               />
             </div>

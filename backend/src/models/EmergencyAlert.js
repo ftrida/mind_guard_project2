@@ -1,16 +1,42 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const emergencyAlertSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  contactName: { type: String, required: true },
-  contactPhone: { type: String },
-  contactEmail: { type: String },
-  triggeredByScore: { type: Number, required: true },
-  status: { type: String, enum: ['sent', 'cancelled', 'failed'], default: 'sent' },
-  details: { type: String, default: '' },
-  timestamp: { type: Date, default: Date.now }
+export const EmergencyAlert = sequelize.define('EmergencyAlert', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  contactName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  contactPhone: {
+    type: DataTypes.STRING
+  },
+  contactEmail: {
+    type: DataTypes.STRING
+  },
+  triggeredByScore: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('sent', 'cancelled', 'failed'),
+    defaultValue: 'sent'
+  },
+  details: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
-
-export const EmergencyAlert = mongoose.model('EmergencyAlert', emergencyAlertSchema);

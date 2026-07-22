@@ -1,22 +1,54 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const meditationHistorySchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  trackId: { type: String, required: true },
-  trackTitle: { type: String, required: true },
-  category: { type: String, required: true }, // e.g., 'Breathing', 'Focus', 'Sleep'
-  durationSeconds: { type: Number, required: true },
-  timestamp: { type: Date, default: Date.now }
+export const MeditationHistory = sequelize.define('MeditationHistory', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  trackId: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  trackTitle: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  durationSeconds: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
 
-const meditationFavoriteSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  trackId: { type: String, required: true }
+export const MeditationFavorite = sequelize.define('MeditationFavorite', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  trackId: {
+    type: DataTypes.STRING,
+    allowNull: false
+  }
 }, {
   timestamps: true
 });
-
-export const MeditationHistory = mongoose.model('MeditationHistory', meditationHistorySchema);
-export const MeditationFavorite = mongoose.model('MeditationFavorite', meditationFavoriteSchema);

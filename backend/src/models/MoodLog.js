@@ -1,16 +1,28 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const moodLogSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  mood: { 
-    type: String, 
-    enum: ['Happy', 'Calm', 'Neutral', 'Tired', 'Anxious', 'Sad', 'Angry'], 
-    required: true 
+export const MoodLog = sequelize.define('MoodLog', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
-  note: { type: String, trim: true, default: '' },
-  timestamp: { type: Date, default: Date.now }
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  mood: {
+    type: DataTypes.ENUM('Happy', 'Calm', 'Neutral', 'Tired', 'Anxious', 'Sad', 'Angry'),
+    allowNull: false
+  },
+  note: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
 }, {
   timestamps: true
 });
-
-export const MoodLog = mongoose.model('MoodLog', moodLogSchema);
