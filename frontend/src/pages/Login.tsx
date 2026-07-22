@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HeartPulse, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { HeartPulse, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, UserCheck } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -29,11 +29,24 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = async (demoEmail: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      await login(demoEmail, 'LoadTestPassword123!');
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Demo login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-dark-950">
-      <div className="w-full max-w-md bg-white dark:bg-dark-900 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-dark-800 glass-card">
+      <div className="w-full max-w-md bg-white dark:bg-dark-900 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-dark-800 glass-card space-y-6">
         {/* Brand */}
-        <div className="text-center space-y-2 mb-8">
+        <div className="text-center space-y-2">
           <div className="inline-flex bg-brand-500 text-white p-3 rounded-2xl shadow-lg shadow-brand-500/30">
             <HeartPulse className="w-8 h-8 animate-pulse-slow" />
           </div>
@@ -42,15 +55,40 @@ export const Login: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-4 mb-6 rounded-2xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-sm flex items-center gap-3 border border-red-100 dark:border-red-900/30 animate-shake">
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-sm flex items-center gap-3 border border-red-100 dark:border-red-900/30 animate-shake">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Quick Demo Access Bar */}
+        <div className="p-4 rounded-2xl bg-brand-50/60 dark:bg-brand-950/20 border border-brand-100 dark:border-brand-900/40 space-y-3">
+          <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block text-center">
+            🚀 Instant Demo Access
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('employee@mindguard.com')}
+              disabled={loading}
+              className="py-2.5 px-3 rounded-xl bg-white dark:bg-dark-800 border border-brand-200 dark:border-dark-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-brand-500 hover:text-white transition flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <UserCheck className="w-4 h-4 text-brand-500" /> Demo Employee
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('admin@mindguard.com')}
+              disabled={loading}
+              className="py-2.5 px-3 rounded-xl bg-white dark:bg-dark-800 border border-brand-200 dark:border-dark-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-brand-500 hover:text-white transition flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <ShieldCheck className="w-4 h-4 text-indigo-500" /> Demo Admin
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Work Email
             </label>
@@ -61,14 +99,14 @@ export const Login: React.FC = () => {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 dark:border-dark-800 bg-slate-50/50 dark:bg-dark-950/50 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200"
+                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-dark-800 bg-slate-50/50 dark:bg-dark-950/50 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 text-sm"
                 placeholder="you@company.com"
               />
             </div>
           </div>
 
           {/* Password */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Password
@@ -87,7 +125,7 @@ export const Login: React.FC = () => {
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 dark:border-dark-800 bg-slate-50/50 dark:bg-dark-950/50 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200"
+                className="w-full pl-12 pr-12 py-3 rounded-2xl border border-slate-200 dark:border-dark-800 bg-slate-50/50 dark:bg-dark-950/50 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 text-sm"
                 placeholder="••••••••"
               />
               <button
@@ -117,13 +155,13 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold transition-all duration-200 shadow-xl shadow-brand-500/25 hover:shadow-brand-500/35 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold transition-all duration-200 shadow-xl shadow-brand-500/25 hover:shadow-brand-500/35 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none text-sm"
           >
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-dark-850">
           New employee at MindGuard?{' '}
           <Link to="/register" className="font-bold text-brand-600 dark:text-brand-400 hover:underline">
             Register Account
