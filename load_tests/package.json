@@ -1,0 +1,14 @@
+{
+  "name": "mindguard-load-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "API load test suite and excel report generator for MindGuard",
+  "main": "run_tests.js",
+  "scripts": {
+    "test": "node run_tests.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "dotenv": "^16.4.5"
+  }
+}
